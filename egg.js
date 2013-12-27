@@ -1,12 +1,70 @@
 !function () {
     'use strict;'
 
-    var root = this;
-
-    'use strict';
-
-    var util = require('util'),
-        _ = require('underscore');
+    var util = {
+            bindAll: function (object) {
+                _.each(object, function (func, name) {
+                    if (_.type(func) === 'function') {
+                        object[name] = _.bind(func, object);
+                    }
+                })
+                return object;
+            },
+            compact: function (array) {
+                var newArray = [];
+                _.each(array, function (item) {
+                    if (item) newArray.push(item);
+                });
+                return newArray;
+            },
+            is: function (target, selector, times) {
+                selector = selector.trim();
+                if (times === undefined) times = 3;
+                var $tar = $(target),
+                    $curtar = this.parent($tar, 2, function ($el) {
+                        if ($el.is(selector)) return true;
+                        else return false;
+                    });
+                return $curtar;
+            },
+            parent: function (target, maxlevel, judge, _count) {
+                var $tar = $(target);
+                /*私有变量，用于统计*/
+                if (_count === undefined) _count = 0;
+                /*递归获取*/
+                if (!judge($tar) && _count >= maxlevel) {
+                    return null;
+                } else if (judge($tar)) {
+                    return $tar;
+                }
+                else {
+                    _count ++;
+                    return this.parent.call(this, $tar.parent(), maxlevel, judge, _count);
+                }
+            }
+        },
+        _ = {
+            each: function(obj, iterator, context) {
+                context = context || this;
+                if (!obj) return;
+                else if (obj.forEach) {
+                    obj.forEach(iterator);
+                } else if (obj.length === +obj.length){
+                    for (var i = 0; i < obj.length; i++) {
+                        iterator.call(context, obj[i], i);
+                    }
+                } else {
+                    for (var key in obj) {
+                        iterator.call(context, obj[key], key);
+                    }
+                }
+            },
+            bind: function (func, context) {
+                return function () {
+                    func.apply(context, arguments);
+                }
+            }
+        };
 
     var egg = util.bindAll({
 
@@ -48,7 +106,6 @@
                      */
                     $('body').off('click ' + item.selector, item.handler);
                     _this.handlers[index] = null;
-                    // _this.handlers = util.without(_this.handlers, index);
                 }
             });
             // 移除为null的项
@@ -132,14 +189,12 @@
         }
     });
 
-    var exportModule = egg;
     if (typeof exports !== 'undefined') {
         if (typeof module !== 'undefined' && module.exports) {
-            exports = module.exports = exportModule;
+            exports = module.exports = egg;
         }
-        exports.exportModule = exportModule;
+        exports.egg = egg;
     } else {
-        root.exportModule = exportModule;
+        this.egg = egg;
     }
-    
 }();
